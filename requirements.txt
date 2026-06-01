@@ -1,0 +1,12 @@
+# Core HTTP client
+requests>=2.31.0,<3.0
+
+# Environment variable management
+python-dotenv>=1.0.0,<2.0
+
+# Rich terminal output (colors, tables, prompts)
+rich>=13.0.0,<14.0
+
+# Optional: Type checking support at runtime
+# (already part of stdlib in Python 3.10+, kept for 3.8/3.9 compat)
+typing-extensions>=4.0.0; python_version < "3.10"
