@@ -17,7 +17,7 @@ from bot.models import OrderSide, OrderType, TimeInForce
 # Symbol
 # ---------------------------------------------------------------------------
 
-# Binance Futures symbols: uppercase letters only, 2-20 chars, ends with USDT/BUSD/USD
+# Binance Futures symbols: uppercase letters only, 2-20 chars
 _SYMBOL_RE = re.compile(r"^[A-Z]{2,20}$")
 
 
@@ -58,27 +58,28 @@ def validate_side(raw: str) -> OrderSide:
 # Order type
 # ---------------------------------------------------------------------------
 
-_SUPPORTED_TYPES = {OrderType.MARKET, OrderType.LIMIT, OrderType.STOP_MARKET}
+# ONLY MARKET and LIMIT are supported
+_SUPPORTED_TYPES = {OrderType.MARKET, OrderType.LIMIT}
 
 
 def validate_order_type(raw: str) -> OrderType:
     """Parse and validate order type."""
     normalised = raw.strip().upper()
-    # Accept common aliases
-    aliases = {"STOP": "STOP_MARKET", "STOP-LIMIT": "STOP_MARKET"}
-    normalised = aliases.get(normalised, normalised)
+
     try:
         order_type = OrderType(normalised)
     except ValueError:
         raise ValidationError(
             f"Invalid order type: '{raw}'.",
-            details=f"Supported types: {', '.join(t.value for t in _SUPPORTED_TYPES)}",
+            details="Supported types: MARKET, LIMIT",
         )
+
     if order_type not in _SUPPORTED_TYPES:
         raise ValidationError(
             f"Order type '{order_type.value}' is not supported by this bot.",
-            details=f"Supported types: {', '.join(t.value for t in _SUPPORTED_TYPES)}",
+            details="Supported types: MARKET, LIMIT",
         )
+
     return order_type
 
 
@@ -98,18 +99,22 @@ def validate_quantity(raw: str) -> Decimal:
             f"Invalid quantity: '{raw}'.",
             details="Quantity must be a positive number, e.g. 0.001",
         )
+
     if qty <= 0:
         raise ValidationError(
             "Quantity must be greater than zero.",
             details=f"Got: {qty}",
         )
-    # Warn about excessive precision (Binance silently rejects it)
+
+    # Warn about excessive precision
     sign, digits, exponent = qty.as_tuple()
+
     if exponent < -3:
         raise ValidationError(
             f"Quantity '{qty}' has too many decimal places.",
             details="Binance Futures supports at most 3 decimal places for most pairs.",
         )
+
     return qty
 
 
@@ -128,11 +133,13 @@ def validate_price(raw: str, allow_zero: bool = False) -> Decimal:
             f"Invalid price: '{raw}'.",
             details="Price must be a positive number, e.g. 30000.50",
         )
+
     if not allow_zero and price <= 0:
         raise ValidationError(
             "Price must be greater than zero.",
             details=f"Got: {price}",
         )
+
     return price
 
 
@@ -142,6 +149,7 @@ def validate_price(raw: str, allow_zero: bool = False) -> Decimal:
 
 def validate_time_in_force(raw: str) -> TimeInForce:
     normalised = raw.strip().upper()
+
     try:
         return TimeInForce(normalised)
     except ValueError:
@@ -164,15 +172,26 @@ def validate_order_params(
     Validate that required fields are present for a given order type.
     Raises ValidationError if any required field is missing.
     """
+
+    # LIMIT orders require price
     if order_type == OrderType.LIMIT:
         if price is None:
             raise ValidationError(
                 "LIMIT orders require a --price argument.",
                 details="Example: --type LIMIT --price 29500.00",
             )
-    if order_type == OrderType.STOP_MARKET:
-        if stop_price is None:
+
+    # MARKET orders should not include price
+    if order_type == OrderType.MARKET:
+        if price is not None:
             raise ValidationError(
-                "STOP_MARKET orders require a --stop-price argument.",
-                details="Example: --type STOP_MARKET --stop-price 28000.00",
+                "MARKET orders should not include a price.",
+                details="Remove the --price argument for MARKET orders.",
             )
+
+    # stop_price is no longer supported
+    if stop_price is not None:
+        raise ValidationError(
+            "STOP_MARKET orders are not supported.",
+            details="Only MARKET and LIMIT orders are allowed.",
+        )

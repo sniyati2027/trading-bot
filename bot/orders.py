@@ -83,31 +83,6 @@ class OrderManager:
         )
         return self._place_order(request)
 
-    def place_stop_market_order(
-        self,
-        symbol: str,
-        side: OrderSide,
-        quantity: Decimal,
-        stop_price: Decimal,
-        reduce_only: bool = False,
-        client_order_id: Optional[str] = None,
-    ) -> OrderResponse:
-        """
-        [BONUS] Place a STOP_MARKET order.
-
-        Triggers a market order when the mark price crosses stop_price.
-        Commonly used as a stop-loss.
-        """
-        request = OrderRequest(
-            symbol=symbol,
-            side=side,
-            order_type=OrderType.STOP_MARKET,
-            quantity=quantity,
-            stop_price=stop_price,
-            reduce_only=reduce_only,
-            client_order_id=client_order_id,
-        )
-        return self._place_order(request)
 
     def get_open_orders(self, symbol: Optional[str] = None) -> list[dict]:
         """Return all open orders, optionally filtered by symbol."""

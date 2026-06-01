@@ -21,9 +21,6 @@ class OrderSide(str, Enum):
 class OrderType(str, Enum):
     MARKET = "MARKET"
     LIMIT = "LIMIT"
-    STOP = "STOP"          # Stop-Market  (bonus)
-    STOP_MARKET = "STOP_MARKET"
-    TAKE_PROFIT = "TAKE_PROFIT"
 
 
 class TimeInForce(str, Enum):
@@ -70,11 +67,7 @@ class OrderRequest:
         if self.order_type in (OrderType.LIMIT,):
             params["price"] = str(self.price)
             params["timeInForce"] = self.time_in_force.value
-        if self.order_type in (OrderType.STOP, OrderType.STOP_MARKET, OrderType.TAKE_PROFIT):
-            params["stopPrice"] = str(self.stop_price)
-            if self.price:
-                params["price"] = str(self.price)
-                params["timeInForce"] = self.time_in_force.value
+       
         if self.reduce_only:
             params["reduceOnly"] = "true"
         if self.client_order_id:
